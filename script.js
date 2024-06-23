@@ -13,7 +13,8 @@ let path = [];
 const XCircles = { x: canvas.width -50, y: 200};
 const YCircles = { x: 150, y: canvas.height -250};
 
-
+let drawPathFlag = false;
+let userDrawFlag = true;
 
 /// Resize Canvas
 window.addEventListener('resize', resizeCanvas);
@@ -25,6 +26,30 @@ function resizeCanvas() {
 }
 resizeCanvas();
 
+
+/// Mouse Events
+let drawing = false;
+canvas.addEventListener('mousedown', (e) => {
+  drawing = true;
+  userDrawFlag = true;
+  drawPathFlag = false;
+  x = [];
+  y = [];
+  x.push(e.clientX);
+  y.push(e.clientY);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if(drawing) {
+    x.push(e.clientX);
+    y.push(e.clientY);
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  drawing = false;
+  startDrawing();
+});
 
 
 /// Fourier Transform
@@ -62,7 +87,6 @@ const makeFouriers = () => {
   fourierX.sort((a, b) => b.amp - a.amp);
   fourierY.sort((a, b) => b.amp - a.amp);
 }
-makeFouriers();
 
 const epiCycles = (x, y, rotation, fourier) => {
   for (let i = 0; i < fourier.length; i++) {
@@ -139,11 +163,39 @@ const drawPath = () => {
   }
 }
 
+const startDrawing = () => {
+  makeFouriers();
+  drawPathFlag = true;
+  userDrawFlag = false;
+  time = 0;
+  path = [];
+}
+
 /// Game Loop
 const gameLoop = () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  drawPath();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1;
+
+  ctx.beginPath();
+  ctx.moveTo(300, 300);
+  ctx.lineTo(300, canvas.height);
+  ctx.moveTo(300, 300);
+  ctx.lineTo(canvas.width, 300);
+  ctx.stroke();
+
+  drawPathFlag && drawPath();
+
+  if(userDrawFlag) {
+    ctx.beginPath();
+    ctx.moveTo(x[0], y[0]);
+    for(let i = 1; i < x.length; i++) {
+      ctx.lineTo(x[i], y[i]);
+    }
+    ctx.stroke();
+    ctx.closePath();
+  }
 
   requestAnimationFrame(gameLoop);
 };
