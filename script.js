@@ -10,8 +10,8 @@ let fourierX = [];
 let fourierY = [];
 let path = [];
 
-const XCircles = { x: canvas.width -50, y: 200};
-const YCircles = { x: 150, y: canvas.height -250};
+const XCircles = { x: canvas.width / 2, y: 100};
+const YCircles = { x: 100, y: canvas.height / 2};
 
 let drawPathFlag = false;
 let userDrawFlag = true;
@@ -21,8 +21,8 @@ window.addEventListener('resize', resizeCanvas);
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  XCircles.x = canvas.width - 350;
-  YCircles.y = canvas.height - 250;
+  XCircles.x = canvas.width / 2;
+  YCircles.y = canvas.height / 2;
 }
 resizeCanvas();
 
@@ -35,14 +35,14 @@ canvas.addEventListener('mousedown', (e) => {
   drawPathFlag = false;
   x = [];
   y = [];
-  x.push(e.clientX);
-  y.push(e.clientY);
+  x.push(e.clientX - canvas.width / 2);
+  y.push(e.clientY - canvas.height / 2);
 });
 
 canvas.addEventListener('mousemove', (e) => {
   if(drawing) {
-    x.push(e.clientX);
-    y.push(e.clientY);
+    x.push(e.clientX - canvas.width / 2);
+    y.push(e.clientY - canvas.height / 2);
   }
 });
 
@@ -175,23 +175,16 @@ const startDrawing = () => {
 const gameLoop = () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1;
-
-  ctx.beginPath();
-  ctx.moveTo(300, 300);
-  ctx.lineTo(300, canvas.height);
-  ctx.moveTo(300, 300);
-  ctx.lineTo(canvas.width, 300);
-  ctx.stroke();
-
+  
   drawPathFlag && drawPath();
 
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1;
   if(userDrawFlag) {
     ctx.beginPath();
-    ctx.moveTo(x[0], y[0]);
+    ctx.moveTo(x[0] + canvas.width / 2, y[0] + canvas.height / 2);
     for(let i = 1; i < x.length; i++) {
-      ctx.lineTo(x[i], y[i]);
+      ctx.lineTo(x[i] + canvas.width / 2, y[i] + canvas.height / 2);
     }
     ctx.stroke();
     ctx.closePath();
