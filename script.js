@@ -6,6 +6,8 @@ let time = 0;
 
 let y = [];
 let x = [];
+let fourierX = [];
+let fourierY = [];
 let path = [];
 
 const XCircles = { x: canvas.width -50, y: 200};
@@ -52,9 +54,15 @@ const discreteFourierTransform = (y) => { // y : Array of Points
 
   return X; 
 };
-const fourierY = discreteFourierTransform(y);
-const fourierX = discreteFourierTransform(x);
 
+const makeFouriers = () => {
+  fourierY = discreteFourierTransform(y);
+  fourierX = discreteFourierTransform(x);
+
+  fourierX.sort((a, b) => b.amp - a.amp);
+  fourierY.sort((a, b) => b.amp - a.amp);
+}
+makeFouriers();
 
 const epiCycles = (x, y, rotation, fourier) => {
   for (let i = 0; i < fourier.length; i++) {
@@ -68,7 +76,7 @@ const epiCycles = (x, y, rotation, fourier) => {
     y += rad * Math.sin(freq * time + phase + rotation);
 
     // Draw Circle
-    ctx.strokeStyle = '#ffffff70'; 
+    ctx.strokeStyle = '#ffffff40'; 
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(prevX, prevY, rad, 0, Math.PI * 2);
@@ -76,14 +84,14 @@ const epiCycles = (x, y, rotation, fourier) => {
     ctx.closePath();
 
     // Draw Point on Circle
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = '#ffffff05';
     ctx.beginPath();
     ctx.arc(x, y, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
     
     // Draw Line from Circle to Point
-    ctx.strokeStyle = '#ffffff'
+    ctx.strokeStyle = '#ffffff80'
     ctx.beginPath();
     ctx.moveTo(prevX, prevY);
     ctx.lineTo(x, y);
@@ -93,10 +101,7 @@ const epiCycles = (x, y, rotation, fourier) => {
   return { x, y };
 };
 
-/// Game Loop
-const gameLoop = () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+const drawPath = () => {
   const dt = 2 * Math.PI / fourierY.length;
   time += dt;
 
@@ -127,6 +132,18 @@ const gameLoop = () => {
   }
   ctx.stroke();
   ctx.closePath();
+  
+  if(time >= 2 * Math.PI) {
+    time = 0;
+    path = [];
+  }
+}
+
+/// Game Loop
+const gameLoop = () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawPath();
 
   requestAnimationFrame(gameLoop);
 };
