@@ -30,25 +30,39 @@ resizeCanvas();
 /// Mouse Events
 let drawing = false;
 canvas.addEventListener('mousedown', (e) => {
-  drawing = true;
-  userDrawFlag = true;
-  drawPathFlag = false;
-  x = [];
-  y = [];
-  x.push(e.clientX - canvas.width / 2);
-  y.push(e.clientY - canvas.height / 2);
+  if(userDrawFlag){
+    drawing = true;
+    x.push(e.clientX - canvas.width / 2);
+    y.push(e.clientY - canvas.height / 2);
+  }
 });
 
 canvas.addEventListener('mousemove', (e) => {
-  if(drawing) {
+  if(drawing && userDrawFlag) {
     x.push(e.clientX - canvas.width / 2);
     y.push(e.clientY - canvas.height / 2);
   }
 });
 
 canvas.addEventListener('mouseup', () => {
-  drawing = false;
-  startDrawing();
+  if(userDrawFlag){
+    drawing = false;
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') {
+    if(userDrawFlag) {
+      userDrawFlag = false;
+      drawPathFlag = true;
+      startDrawing();
+    } else {
+      userDrawFlag = true;
+      drawPathFlag = false;
+      x = [];
+      y = [];
+    }
+  }
 });
 
 
