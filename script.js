@@ -2,10 +2,12 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-let time = 0;
+let time = [];
 
 let y = [];
 let x = [];
+let xArrTemp = [];
+let yArrTemp = [];
 let fourierX = [];
 let fourierY = [];
 let path = [];
@@ -32,21 +34,25 @@ let drawing = false;
 canvas.addEventListener('mousedown', (e) => {
   if(userDrawFlag){
     drawing = true;
-    x.push(e.clientX - canvas.width / 2);
-    y.push(e.clientY - canvas.height / 2);
+    xArrTemp.push(e.clientX - canvas.width / 2);
+    yArrTemp.push(e.clientY - canvas.height / 2);
   }
 });
 
 canvas.addEventListener('mousemove', (e) => {
   if(drawing && userDrawFlag) {
-    x.push(e.clientX - canvas.width / 2);
-    y.push(e.clientY - canvas.height / 2);
+    xArrTemp.push(e.clientX - canvas.width / 2);
+    yArrTemp.push(e.clientY - canvas.height / 2);
   }
 });
 
 canvas.addEventListener('mouseup', () => {
   if(userDrawFlag){
     drawing = false;
+    x.push(xArrTemp);
+    y.push(yArrTemp);
+    xArrTemp = [];
+    yArrTemp = [];
   }
 });
 
@@ -55,12 +61,18 @@ window.addEventListener('keydown', (e) => {
     if(userDrawFlag) {
       userDrawFlag = false;
       drawPathFlag = true;
+      console.log(x, y);
       startDrawing();
     } else {
       userDrawFlag = true;
       drawPathFlag = false;
       x = [];
       y = [];
+      fourierX = [];
+      fourierY = [];
+      xArrTemp = [];
+      yArrTemp = [];
+      time = [];
     }
   }
 });
@@ -95,14 +107,20 @@ const discreteFourierTransform = (y) => { // y : Array of Points
 };
 
 const makeFouriers = () => {
-  fourierY = discreteFourierTransform(y);
-  fourierX = discreteFourierTransform(x);
+  x.forEach((arr) => {
+    tempFourier = discreteFourierTransform(arr);
+    tempFourier.sort((a, b) => b.amp - a.amp);
+    fourierX.push(tempFourier);
+  });
 
-  fourierX.sort((a, b) => b.amp - a.amp);
-  fourierY.sort((a, b) => b.amp - a.amp);
+  y.forEach((arr) => {
+    tempFourier = discreteFourierTransform(arr);
+    tempFourier.sort((a, b) => b.amp - a.amp);
+    fourierY.push(tempFourier);
+  });
 }
 
-const epiCycles = (x, y, rotation, fourier) => {
+const epiCycles = (x, y, rotation, fourier, t) => {
   for (let i = 0; i < fourier.length; i++) {
     let prevX = x;
     let prevY = y;
@@ -110,8 +128,8 @@ const epiCycles = (x, y, rotation, fourier) => {
     let freq = fourier[i].freq;
     let rad = fourier[i].amp;
     let phase = fourier[i].phase;
-    x += rad * Math.cos(freq * time + phase + rotation);
-    y += rad * Math.sin(freq * time + phase + rotation);
+    x += rad * Math.cos(freq * t + phase + rotation);
+    y += rad * Math.sin(freq * t + phase + rotation);
 
     // Draw Circle
     ctx.strokeStyle = '#ffffff40'; 
@@ -139,16 +157,16 @@ const epiCycles = (x, y, rotation, fourier) => {
   return { x, y };
 };
 
-const drawPath = () => {
-  const dt = 2 * Math.PI / fourierY.length;
-  time += dt;
+const drawPath = (fourY, fourX, index) => {
+  const dt = 2 * Math.PI / fourY.length;
+  time[index] += dt;
 
-  const { x: dx, y: dy } = epiCycles(XCircles.x, XCircles.y, 0, fourierX);
-  const { x: cx, y: cy } = epiCycles(YCircles.x, YCircles.y, Math.PI / 2, fourierY);
+  const { x: dx, y: dy } = epiCycles(XCircles.x, XCircles.y, 0, fourX, time[index]);
+  const { x: cx, y: cy } = epiCycles(YCircles.x, YCircles.y, Math.PI / 2, fourY, time[index]);
   let v = { x: dx, y: cy };
 
   // Add Point to Wave
-  path.unshift(v);
+  path[index].unshift(v);
 
   // Draw Line from X Fourier to resulting Point
   ctx.beginPath();
@@ -165,15 +183,15 @@ const drawPath = () => {
   ctx.closePath();
 
   ctx.beginPath();
-  for(let i = 0; i < path.length; i++) {
-    ctx.lineTo(path[i].x, path[i].y);
+  for(let i = 0; i < path[index].length; i++) {
+    ctx.lineTo(path[index][i].x, path[index][i].y);
   }
   ctx.stroke();
   ctx.closePath();
   
-  if(time >= 2 * Math.PI) {
-    time = 0;
-    path = [];
+  if(time[index] >= 2 * Math.PI) {
+    time[index] = 0;
+    path[index] = [];
   }
 }
 
@@ -181,7 +199,7 @@ const startDrawing = () => {
   makeFouriers();
   drawPathFlag = true;
   userDrawFlag = false;
-  time = 0;
+  time = [];
   path = [];
 }
 
@@ -189,19 +207,36 @@ const startDrawing = () => {
 const gameLoop = () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  
-  drawPathFlag && drawPath();
+  if(drawPathFlag) {
+    for(let i = 0; i < fourierY.length; i++) {
+      time.push(0);
+      path.push([]);
+      drawPath(fourierY[i], fourierX[i], i);
+    }
+  }
 
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 1;
   if(userDrawFlag) {
-    ctx.beginPath();
-    ctx.moveTo(x[0] + canvas.width / 2, y[0] + canvas.height / 2);
-    for(let i = 1; i < x.length; i++) {
-      ctx.lineTo(x[i] + canvas.width / 2, y[i] + canvas.height / 2);
+    for (let i = 0; i < x.length; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x[i][0] + canvas.width / 2, y[i][0] + canvas.height / 2);
+      for (let j = 1; j < x[i].length; j++) {
+        ctx.lineTo(x[i][j] + canvas.width / 2, y[i][j] + canvas.height / 2);
+      }
+      ctx.stroke();
+      ctx.closePath();
     }
-    ctx.stroke();
-    ctx.closePath();
+
+    if(xArrTemp.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(xArrTemp[0] + canvas.width / 2, yArrTemp[0] + canvas.height / 2);
+      for (let i = 1; i < xArrTemp.length; i++) {
+        ctx.lineTo(xArrTemp[i] + canvas.width / 2, yArrTemp[i] + canvas.height / 2);
+      }
+      ctx.stroke();
+      ctx.closePath();
+    }
   }
 
   requestAnimationFrame(gameLoop);
